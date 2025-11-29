@@ -27,7 +27,7 @@ def create_player(
     )
     conn.commit()
 
-def get_player_by_username(username: str) -> Optional[dict[str, Any]]:
+def get_player_by_username(game_username: str) -> Optional[dict[str, Any]]:
     """Get player information from database by username, or None if not found."""
     conn = get_connection()
     cur = conn.cursor()
@@ -35,9 +35,9 @@ def get_player_by_username(username: str) -> Optional[dict[str, Any]]:
         """
         SELECT user_game_id, game_username, pin_hash, is_admin, created_at
         FROM player
-        WHERE username = ?
+        WHERE game_username = ?
         """,
-        (username,),
+        (game_username,),
     )
     row = cur.fetchone()
     if row is None:
@@ -45,7 +45,7 @@ def get_player_by_username(username: str) -> Optional[dict[str, Any]]:
 
     return {
         "user_game_id": row[0],
-        "username": row[1],
+        "game_username": row[1],
         "pin_hash": row[2],
         "is_admin": int(row[3]),
         "created_at": row[4],
@@ -91,3 +91,28 @@ def set_player_pin_hash(user_game_id: int, pin_hash: str) -> None:
     )
     conn.commit()
 
+
+def get_player_by_app_username(app_username: str) -> Optional[dict[str, Any]]:
+    """Get player (admin) by app_username."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT user_game_id, game_username, app_username, pin_hash, is_admin, created_at
+        FROM player
+        WHERE app_username = ?
+        """,
+        (app_username,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+
+    return {
+        "user_game_id": row[0],
+        "game_username": row[1],
+        "app_username": row[2],
+        "pin_hash": row[3],
+        "is_admin": int(row[4]),
+        "created_at": row[5],
+    }
