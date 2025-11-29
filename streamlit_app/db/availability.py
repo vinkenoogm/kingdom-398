@@ -31,3 +31,20 @@ def save_availability(
         )
 
     conn.commit()
+
+
+def get_availability_slots(player_id: int, activity_id: int) -> list[str]:
+    """Return list of slot strings for this player & activity."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT slot
+        FROM availability
+        WHERE player_id = ? AND activity_id = ?
+        ORDER BY slot
+        """,
+        (player_id, activity_id),
+    )
+    rows = cur.fetchall()
+    return [row[0] for row in rows]

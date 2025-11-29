@@ -7,12 +7,14 @@ from streamlit_app.db import init_db
 from streamlit_app.db.activity import get_active_activities
 from streamlit_app.db.availability import save_availability
 from streamlit_app.utils.authentication import upsert_player_and_check_pin
+from streamlit_app.db.availability import save_availability, get_availability_slots
 
 
 def render_slot_grid(
     slots: list[str],
     key_prefix: str,
     cols_per_row: int = 6,
+    preselected_slots: list[str] | set[str] | None = None,
 ) -> list[str]:
     """
     Render a grid of checkboxes for the given time slots.
@@ -21,6 +23,8 @@ def render_slot_grid(
     """
     selected: list[str] = []
     cols = []
+
+    preselected = set(preselected_slots or [])
 
     for i, slot in enumerate(slots):
         # Start a new row every cols_per_row slots
@@ -32,6 +36,7 @@ def render_slot_grid(
             checked = st.checkbox(
                 slot,
                 key=f"{key_prefix}_{slot}",
+                value=slot in preselected
             )
         if checked:
             selected.append(slot)
@@ -94,7 +99,6 @@ def run():
     player_name = st.session_state["player_name"]
 
     if player_id is not None and player_name is not None:
-
         # Show activities list
         activities = get_active_activities()
         if not activities:
@@ -126,19 +130,26 @@ def run():
             activity_index = activity_labels.index(selected_activity_label)
             selected_activity_id = activity_ids[activity_index]
 
+            # Fetch existing slots for this player & activity
+            existing_slots = get_availability_slots(
+                player_id=player_id,
+                activity_id=selected_activity_id,
+            )
+
             st.markdown("**When are you available?**")
             st.caption("Click all half-hour slots that work for you. All times are in UTC.")
 
             selected_slots = render_slot_grid(
                 slots,
                 key_prefix=f"slots_act_{selected_activity_id}",
+                preselected_slots=existing_slots,
             )
 
             submitted_availability = st.form_submit_button("Save availability")
 
         if submitted_availability:
             save_availability(
-                user_game_id=player_name,
+                user_game_id=player_id,
                 activity_id=selected_activity_id,
                 slots=selected_slots,
             )
