@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Any
 
 from . import get_connection
@@ -22,7 +22,7 @@ def create_player(
             game_username,
             pin_hash,
             int(is_admin),
-            datetime.now(datetime.UTC).isoformat(timespec="seconds")
+            datetime.now(UTC).isoformat(timespec="seconds")
         ),
     )
     conn.commit()
@@ -75,3 +75,19 @@ def get_player_by_id(user_id: int) -> Optional[dict[str, Any]]:
         "is_admin": int(row[3]),
         "created_at": row[4],
     }
+
+
+def set_player_pin_hash(user_game_id: int, pin_hash: str) -> None:
+    """Update player pin hash."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE player
+        SET pin_hash = ?
+        WHERE user_game_id = ?
+        """,
+        (pin_hash, user_game_id)
+    )
+    conn.commit()
+

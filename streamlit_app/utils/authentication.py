@@ -1,5 +1,5 @@
 import hashlib
-import sqlite3
+from datetime import datetime, UTC
 
 from streamlit_app.db import player as player_db
 
@@ -9,31 +9,46 @@ def hash_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode("utf-8")).hexdigest()
 
 
-def register_player(user_game_id_str: str, username: str, pin: str) -> tuple[bool, str]:
+def upsert_player_and_check_pin(
+        user_game_id: int,
+        game_username: str,
+        pin: str | None,
+) -> tuple[bool, str]:
     """
-    Try to register a new player in the database. Returns (success, message).
-    If registration successful, returns (True, "")
-    If unsuccessful, returns (False, error message)
+    Checks if player exists and enforces PIN rules.
+
+    Returns (success, message)
     """
-    try:
-        user_game_id = int(user_game_id_str)
-    except ValueError:
-        return (False, "Your game ID must consist of numbers only.")
+    player = player_db.get_player_by_id(user_game_id)
+    now = datetime.now(UTC).isoformat(timespec="seconds")
 
-    if not username:
-        return (False, "You must provide a username.")
-
-    if not pin:
-        return (False, "You must provide a pin.")
-
-    pin_hash = hash_pin(pin)
-
-    try:
+    # Case 1: player does not exist in database, create new
+    if not player:
+        pin_hash = hash_pin(pin) if pin else None
         player_db.create_player(
             user_game_id=user_game_id,
-            username=username,
+            game_username=game_username,
             pin_hash=pin_hash,
             is_admin=False,
         )
-    except sqlite3.IntegrityError:
-        return (False, "Player with that game ID is already registered.")
+        return True, "Player created."
+
+    # Case 2: player exists in database without pin
+    if not player["pin_hash"]:
+        # If a pin is now provided, store in database
+        if pin:
+            new_pin_hash = hash_pin(pin)
+            player_db.set_player_pin_hash(user_game_id, new_pin_hash)
+            return True, f"Player {player['game_username']} existed without PIN, PIN now set."
+        else:
+            return True, f"Player {player['game_username']} exists without PIN. Availability can be updated."
+
+    # Case 3: player has pin set, verify it
+    if not pin:
+        return False, f"{player['game_username']} has a PIN set, enter it to edit availability."
+
+    if hash_pin(pin) != player["pin_hash"]:
+        return False, "Incorrect PIN."
+
+    # Allow editing if pin is correct
+    return True, f"Logged in as {player['game_username']}."
