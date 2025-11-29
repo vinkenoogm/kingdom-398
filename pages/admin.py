@@ -2,8 +2,10 @@ import streamlit as st
 
 from streamlit_app.db import init_db
 from streamlit_app.db.activity import create_activity, get_all_activities
-import streamlit_app.db.player as player_db
 from streamlit_app.utils.authentication import authenticate_admin
+from streamlit_app.db import player as player_db
+from streamlit_app.db.export import get_table_df
+
 
 def main():
     st.set_page_config(page_title="Kingshot 398 admin", page_icon="🔒")
@@ -84,6 +86,40 @@ def main():
                 for activity in activities
             ]
         )
+
+    st.subheader("Export data")
+
+    st.caption("Download CSV snapshots of the current database tables.")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        df_players = get_table_df("player")
+        st.download_button(
+            label="Download players.csv",
+            data=df_players.to_csv(index=False).encode("utf-8"),
+            file_name="players.csv",
+            mime="text/csv",
+        )
+
+    with col2:
+        df_activities = get_table_df("activity")
+        st.download_button(
+            label="Download activities.csv",
+            data=df_activities.to_csv(index=False).encode("utf-8"),
+            file_name="activities.csv",
+            mime="text/csv",
+        )
+
+    with col3:
+        df_availability = get_table_df("availability")
+        st.download_button(
+            label="Download availability.csv",
+            data=df_availability.to_csv(index=False).encode("utf-8"),
+            file_name="availability.csv",
+            mime="text/csv",
+        )
+
 
 if __name__ == "__main__":
     main()
