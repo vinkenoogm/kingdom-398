@@ -1,23 +1,25 @@
 from datetime import datetime
+from typing import Optional, Any
 
 from . import get_connection
 
+
 def create_player(
         user_game_id: int,
-        username: str,
-        pin_hash: str,
+        game_username: str,
+        pin_hash: str | None,
         is_admin: bool = False
 ) -> None:
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO player (user_game_id, username, pin_hash, is_admin, created_at)
+        INSERT INTO player (user_game_id, game_username, pin_hash, is_admin, created_at)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
             user_game_id,
-            username,
+            game_username,
             pin_hash,
             int(is_admin),
             datetime.now(datetime.UTC).isoformat(timespec="seconds")
@@ -31,7 +33,7 @@ def get_player_by_username(username: str) -> Optional[dict[str, Any]]:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT user_game_id, username, pin_hash, is_admin, created_at
+        SELECT user_game_id, game_username, pin_hash, is_admin, created_at
         FROM player
         WHERE username = ?
         """,
@@ -44,6 +46,31 @@ def get_player_by_username(username: str) -> Optional[dict[str, Any]]:
     return {
         "user_game_id": row[0],
         "username": row[1],
+        "pin_hash": row[2],
+        "is_admin": int(row[3]),
+        "created_at": row[4],
+    }
+
+
+def get_player_by_id(user_id: int) -> Optional[dict[str, Any]]:
+    """Get player information from database by id, or None if not found."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT user_game_id, game_username, pin_hash, is_admin, created_at
+        FROM player
+        WHERE user_game_id = ?
+        """,
+        (user_id,)
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+
+    return {
+        "user_game_id": row[0],
+        "game_username": row[1],
         "pin_hash": row[2],
         "is_admin": int(row[3]),
         "created_at": row[4],
