@@ -4,7 +4,7 @@ from . import get_connection
 
 
 def save_availability(
-        user_game_id: int,
+        player_id: int,
         activity_id: int,
         slots: list[str],
 ) -> None:
@@ -16,7 +16,7 @@ def save_availability(
 
     cur.execute(
         "DELETE FROM availability WHERE player_id = ? AND activity_id = ?",
-        (user_game_id, activity_id),
+        (player_id, activity_id),
     )
 
     now = datetime.now(UTC).isoformat(timespec="seconds")
@@ -27,7 +27,7 @@ def save_availability(
             INSERT INTO availability (player_id, activity_id, slot, created_at)
             VALUES (?, ?, ?, ?) 
             """,
-            [(user_game_id, activity_id, slot, now) for slot in slots]
+            [(player_id, activity_id, slot, now) for slot in slots]
         )
 
     conn.commit()

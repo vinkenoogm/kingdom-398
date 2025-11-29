@@ -17,7 +17,7 @@ def upsert_player_and_check_pin(
     """
     Checks if player exists and enforces PIN rules.
 
-    Returns (success, message, resolved_user_game_id)
+    Returns (success, message, resolved_player_id)
     """
 
     # Find player by username first
@@ -33,7 +33,7 @@ def upsert_player_and_check_pin(
         pin_hash = hash_pin(pin) if pin else None
 
         try:
-            player_db.create_player(
+            new_player_id = player_db.create_player(
                 user_game_id=user_game_id,
                 game_username=game_username,
                 app_username=None,
@@ -44,9 +44,9 @@ def upsert_player_and_check_pin(
             # ID already in use or other constraint violation
             return False, "That in-game ID is already registered.", None
 
-        return True, "Player created.", user_game_id
+        return True, "Player created.", new_player_id
 
-    resolved_id = player["user_game_id"]
+    resolved_id = player["player_id"]
 
     # Case 2: player exists in database without pin
     if not player["pin_hash"]:

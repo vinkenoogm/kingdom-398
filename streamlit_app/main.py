@@ -55,6 +55,7 @@ def run():
     # Player identification
     if st.session_state["player_id"] is None:
         st.subheader("Welcome! Who are you?")
+        st.caption("If you're here for the first time, enter your in-game username and ID. You can set a PIN to edit your availability later, but it's not required. If you're a returning user, you can log in using your in-game username and your PIN if you've set one.")
 
         with st.form("identify_form"):
             game_username = st.text_input("In-game username")
@@ -84,7 +85,7 @@ def run():
                 if success:
                     st.session_state["player_id"] = resolved_id
                     st.session_state["player_name"] = game_username
-                    st.success(msg)
+                    st.rerun()
                 else:
                     st.session_state["player_id"] = None
                     st.session_state["player_name"] = None
@@ -94,19 +95,20 @@ def run():
     player_id = st.session_state["player_id"]
     player_name = st.session_state["player_name"]
 
+    # Logged in area
     if player_id is not None and player_name is not None:
-        # Show activities list
+        st.success(f"Hi, **{player_name}**!")
+        if st.button("Log out", key="player_logout"):
+            for key in ("player_id", "player_name"):
+                st.session_state.pop(key, None)
+            st.rerun()
+
         activities = get_active_activities()
         if not activities:
             st.error("No active activities.")
             return
 
         st.subheader("Set availability")
-        st.info(f"Using player ID {player_id}. Hi, **{player_name}**!")
-        if st.button("Log out"):
-            st.session_state["admin_id"] = None
-            st.session_state["admin_name"] = None
-            st.rerun()
 
         # Select activity
         activity_labels = []
@@ -145,7 +147,7 @@ def run():
 
         if submitted_availability:
             save_availability(
-                user_game_id=player_id,
+                player_id=player_id,
                 activity_id=selected_activity_id,
                 slots=selected_slots,
             )

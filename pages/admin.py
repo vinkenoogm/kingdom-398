@@ -1,5 +1,5 @@
 import streamlit as st
-
+import pandas as pd
 from streamlit_app.db import init_db
 from streamlit_app.db.activity import create_activity, get_all_activities
 from streamlit_app.utils.authentication import authenticate_admin, hash_pin
@@ -14,6 +14,7 @@ def main():
     if "admin_id" not in st.session_state:
         st.session_state["admin_id"] = None
         st.session_state["admin_name"] = None
+        st.session_state["is_super_admin"] = False
 
     st.title("Admin - Manage activities")
 
@@ -66,6 +67,7 @@ def main():
                     app_username=app_username,
                     pin_hash=pin_hash,
                     is_admin=True,
+                    is_super_admin=True,
                 )
             except Exception as e:
                 st.error(f"Couldn't create admin, error: {e}")
@@ -90,7 +92,8 @@ def main():
                 admin = player_db.get_player_by("app_username", app_username)
                 st.session_state["admin_id"] = admin["user_game_id"]
                 st.session_state["admin_name"] = admin["app_username"]
-                st.success(msg)
+                st.session_state["is_super_admin"] = bool(admin["is_super_admin"])
+                st.rerun()
             else:
                 st.error(msg)
 
@@ -100,9 +103,9 @@ def main():
     ### Logged in area
 
     st.info(f"Logged in as admin user **{st.session_state['admin_name']}**")
-    if st.button("Log out"):
-        st.session_state["admin_id"] = None
-        st.session_state["admin_name"] = None
+    if st.button("Log out", key="admin_logout"):
+        for key in ("admin_id", "admin_name", "is_super_admin"):
+            st.session_state.pop(key, None)
         st.rerun()
 
     st.subheader("Add a new activity")
@@ -179,6 +182,45 @@ def main():
             mime="text/csv",
         )
 
+    # Super admin area
+    if st.session_state.get("is_super_admin"):
+        st.markdown("---")
+        st.subheader("Super admin - player management")
+        st.success(f"Hi {st.session_state.get("admin_name")} :)")
+
+        df_players = get_table_df("player")
+
+        if df_players.empty:
+            st.info("No players found.")
+        else:
+            df_players = df_players.set_index("player_id")
+            df_players['is_admin'] = df_players['is_admin'].astype("bool")
+            editable_cols = ["game_username", "user_game_id", "app_username", "is_admin", "is_super_admin"]
+            editable_cols = [c for c in editable_cols if c in df_players.columns]
+            disabled_cols = [c for c in df_players.columns if c not in editable_cols]
+
+            st.markdown("Edit players - caution!")
+            st.caption("You can edit in-game username and ID, app usernames and admin status.")
+
+            edited_df = st.data_editor(
+                df_players,
+                num_rows="fixed",
+                key="players_editor",
+                disabled=disabled_cols,
+            )
+
+            if st.button("Save changes to player table"):
+                old_df = df_players[editable_cols]
+                new_df = edited_df[editable_cols]
+
+                changed_rows = new_df.loc[(old_df != new_df).any(axis=1)]
+
+                if changed_rows.empty:
+                    st.info("No changes made.")
+                else:
+                    n_updated = player_db.update_players_from_df(changed_rows)
+                    st.success(f"Saved changes for {n_updated} player{'s' if n_updated != 1 else ''}.")
+                    st.rerun()
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,7 @@
 -- User table, simple login system with hashed PIN
 CREATE TABLE IF NOT EXISTS player (
-    user_game_id INT PRIMARY KEY,
+    player_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_game_id INTEGER NOT NULL UNIQUE,
     game_username TEXT NOT NULL UNIQUE,
     app_username TEXT,          -- for admin login only
     pin_hash TEXT,
@@ -27,6 +28,6 @@ CREATE TABLE IF NOT EXISTS availability (
     slot TEXT NOT NULL,         -- "HH:MM"
     created_at TEXT NOT NULL,   -- "YYYY-MM-DDTHH:MM"
     UNIQUE (player_id, activity_id, slot),
-    FOREIGN KEY (player_id) REFERENCES player(user_game_id),
+    FOREIGN KEY (player_id) REFERENCES player(player_id),
     FOREIGN KEY (activity_id) REFERENCES activity(id)
 );

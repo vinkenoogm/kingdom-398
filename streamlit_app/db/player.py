@@ -1,6 +1,6 @@
 from datetime import datetime, UTC
 from typing import Optional, Any
-
+import pandas as pd
 from . import get_connection
 
 
@@ -20,7 +20,8 @@ def create_player(
         pin_hash: str | None,
         is_admin: bool = False,
         is_super_admin: bool = False,
-) -> None:
+) -> int:
+    """Create player and return new player_id."""
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
@@ -39,6 +40,7 @@ def create_player(
         ),
     )
     conn.commit()
+    return cur.lastrowid
 
 
 def set_player_pin_hash(user_game_id: int, pin_hash: str) -> None:
@@ -64,6 +66,7 @@ def get_player_by(column: str, value: Any) -> Optional[dict[str, Any]]:
     """
     # whitelist column:
     allowed = {
+        "player_id",
         "game_username",
         "user_game_id",
         "app_username",
@@ -77,7 +80,7 @@ def get_player_by(column: str, value: Any) -> Optional[dict[str, Any]]:
 
     # Build the query dynamically but safely
     query = f"""
-        SELECT user_game_id, game_username, app_username, pin_hash, is_admin, created_at
+        SELECT player_id, user_game_id, game_username, app_username, pin_hash, is_admin, is_super_admin, created_at
         FROM player
         WHERE {column} = ?
     """
@@ -88,10 +91,44 @@ def get_player_by(column: str, value: Any) -> Optional[dict[str, Any]]:
         return None
 
     return {
-        "user_game_id": row[0],
-        "game_username": row[1],
-        "app_username": row[2],
-        "pin_hash": row[3],
-        "is_admin": int(row[4]),
-        "created_at": row[5],
+        "player_id": row[0],
+        "user_game_id": row[1],
+        "game_username": row[2],
+        "app_username": row[3],
+        "pin_hash": row[4],
+        "is_admin": int(row[5]),
+        "is_super_admin": int(row[6]),
+        "created_at": row[7],
     }
+
+def update_players_from_df(changed: pd.DataFrame) -> int:
+    """
+    Applies updates to the database for the given rows, indexed by player_id.
+    Returns the number of rows updated.
+    """
+    if changed.empty:
+        return 0
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # Update only changed rows
+    for player_id, row in changed.iterrows():
+        cur.execute(
+            """
+            UPDATE player
+            SET user_game_id = ?, game_username = ?, app_username = ?,
+                is_admin = ?, is_super_admin = ?
+            WHERE player_id = ?
+            """,
+            (
+                int(row["user_game_id"]) if pd.notna(row["user_game_id"]) else None,
+                row["game_username"],
+                row.get("app_username"),
+                int(bool(row["is_admin"])),
+                int(bool(row["is_super_admin"])),
+                int(player_id),
+            ),
+        )
+
+    conn.commit()
