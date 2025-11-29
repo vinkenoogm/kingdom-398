@@ -1,6 +1,5 @@
 import hashlib
 import sqlite3
-from datetime import datetime, UTC
 
 from streamlit_app.db import player as player_db
 
@@ -22,7 +21,7 @@ def upsert_player_and_check_pin(
     """
 
     # Find player by username first
-    player = player_db.get_player_by_username(game_username)
+    player = player_db.get_player_by("game_username", game_username)
 
     print(player)
 
@@ -37,6 +36,7 @@ def upsert_player_and_check_pin(
             player_db.create_player(
                 user_game_id=user_game_id,
                 game_username=game_username,
+                app_username=None,
                 pin_hash=pin_hash,
                 is_admin=False,
             )
@@ -79,7 +79,7 @@ def authenticate_admin(app_username: str, pin: str) -> tuple[bool, str]:
     if not pin:
         return False, "Please enter your PIN."
 
-    admin = player_db.get_player_by_app_username(app_username)
+    admin = player_db.get_player_by("app_username", app_username)
 
     if admin is None or not admin["is_admin"]:
         return False, "No admin account found with this username."

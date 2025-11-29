@@ -2,7 +2,7 @@ import streamlit as st
 
 from streamlit_app.db import init_db
 from streamlit_app.db.activity import create_activity, get_all_activities
-from streamlit_app.utils.authentication import authenticate_admin
+from streamlit_app.utils.authentication import authenticate_admin, hash_pin
 from streamlit_app.db import player as player_db
 from streamlit_app.db.export import get_table_df
 
@@ -17,6 +17,65 @@ def main():
 
     st.title("Admin - Manage activities")
 
+    ### First time admin setup (ugh streamlit cloud)
+    # Todo persistent database
+
+    if not player_db.any_admin_exists():
+        st.warning("No admin account exists yet. Setup the super admin.")
+
+        with st.form("create_admin_form"):
+            setup_token = st.text_input("Setup token", type="password")
+            user_game_id_str = st.text_input("In-game ID")
+            game_username = st.text_input("In-game username")
+            app_username = st.text_input("Admin username", help="Can be the same as game username")
+            pin = st.text_input("PIN", type="password")
+            pin_confirm = st.text_input("Confirm PIN", type="password")
+
+            submitted_setup = st.form_submit_button("Create admin account")
+
+        if submitted_setup:
+            expected_token = st.secrets.get("ADMIN_SETUP_TOKEN")
+            if not expected_token:
+                st.error("Server misconfigured: ADMIN_SETUP_TOKEN is missing in secrets.")
+                return
+
+            if setup_token != expected_token:
+                st.error("Invalid setup token.")
+                return
+
+            if not user_game_id_str or not game_username or not app_username or not pin:
+                st.error("Please fill out all fields.")
+                return
+
+            if pin != pin_confirm:
+                st.error("PINs don't match.")
+                return
+
+            try:
+                user_game_id = int(user_game_id_str)
+            except ValueError:
+                st.error("In-game ID must be a number.")
+                return
+
+            pin_hash = hash_pin(pin)
+
+            try:
+                player_db.create_player(
+                    user_game_id=user_game_id,
+                    game_username=game_username,
+                    app_username=app_username,
+                    pin_hash=pin_hash,
+                    is_admin=True,
+                )
+            except Exception as e:
+                st.error(f"Couldn't create admin, error: {e}")
+                return
+
+            st.success("Admin account created! Now login and do admin stuff")
+
+
+    ### Admin login
+
     if st.session_state["admin_id"] is None:
         st.subheader("Admin login")
 
@@ -28,7 +87,7 @@ def main():
         if submitted:
             ok, msg = authenticate_admin(app_username, pin)
             if ok:
-                admin = player_db.get_player_by_app_username(app_username)
+                admin = player_db.get_player_by("app_username", app_username)
                 st.session_state["admin_id"] = admin["user_game_id"]
                 st.session_state["admin_name"] = admin["app_username"]
                 st.success(msg)
@@ -38,7 +97,7 @@ def main():
         if st.session_state["admin_id"] is None:
             return          # Not logged in, stop here
 
-    ### LOGGED IN ADMIN AREA ###
+    ### Logged in area
 
     st.info(f"Logged in as admin user **{st.session_state['admin_name']}**")
     if st.button("Log out"):

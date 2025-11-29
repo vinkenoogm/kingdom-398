@@ -1,13 +1,9 @@
 import streamlit as st
 
 from streamlit_app.db import init_db
-import streamlit as st
-
-from streamlit_app.db import init_db
 from streamlit_app.db.activity import get_active_activities
-from streamlit_app.db.availability import save_availability
-from streamlit_app.utils.authentication import upsert_player_and_check_pin
 from streamlit_app.db.availability import save_availability, get_availability_slots
+from streamlit_app.utils.authentication import upsert_player_and_check_pin
 
 
 def render_slot_grid(
