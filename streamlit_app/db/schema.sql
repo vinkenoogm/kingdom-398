@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS player (
     game_username TEXT NOT NULL UNIQUE,
     app_username TEXT,          -- for admin login only
     pin_hash TEXT,
+    alliance TEXT,
     is_admin INTEGER NOT NULL DEFAULT 0,
     is_super_admin INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL    -- "YYYY-MM-DDTHH:MM"

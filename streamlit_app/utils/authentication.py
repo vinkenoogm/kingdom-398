@@ -50,13 +50,7 @@ def upsert_player_and_check_pin(
 
     # Case 2: player exists in database without pin
     if not player["pin_hash"]:
-        # If a pin is now provided, store in database
-        if pin:
-            new_pin_hash = hash_pin(pin)
-            player_db.set_player_pin_hash(user_game_id, new_pin_hash)
-            return True, f"Player {player['game_username']} existed without PIN, PIN now set.", resolved_id
-        else:
-            return True, f"Player {player['game_username']} exists without PIN. Availability can be updated.", resolved_id
+        return True, f"Player {player['game_username']} exists without PIN.", resolved_id
 
     # Case 3: player has pin set, verify it
     if not pin:

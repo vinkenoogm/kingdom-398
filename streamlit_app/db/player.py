@@ -43,7 +43,7 @@ def create_player(
     return cur.lastrowid
 
 
-def set_player_pin_hash(user_game_id: int, pin_hash: str) -> None:
+def set_player_pin_hash(player_id: int, pin_hash: str) -> None:
     """Update player pin hash."""
     conn = get_connection()
     cur = conn.cursor()
@@ -51,9 +51,9 @@ def set_player_pin_hash(user_game_id: int, pin_hash: str) -> None:
         """
         UPDATE player
         SET pin_hash = ?
-        WHERE user_game_id = ?
+        WHERE player_id = ?
         """,
-        (pin_hash, user_game_id)
+        (pin_hash, player_id)
     )
     conn.commit()
 
@@ -80,7 +80,7 @@ def get_player_by(column: str, value: Any) -> Optional[dict[str, Any]]:
 
     # Build the query dynamically but safely
     query = f"""
-        SELECT player_id, user_game_id, game_username, app_username, pin_hash, is_admin, is_super_admin, created_at
+        SELECT player_id, user_game_id, game_username, app_username, pin_hash, alliance, is_admin, is_super_admin, created_at
         FROM player
         WHERE {column} = ?
     """
@@ -96,9 +96,10 @@ def get_player_by(column: str, value: Any) -> Optional[dict[str, Any]]:
         "game_username": row[2],
         "app_username": row[3],
         "pin_hash": row[4],
-        "is_admin": int(row[5]),
-        "is_super_admin": int(row[6]),
-        "created_at": row[7],
+        "alliance": row[5],
+        "is_admin": int(row[6]),
+        "is_super_admin": int(row[7]),
+        "created_at": row[8],
     }
 
 def update_players_from_df(changed: pd.DataFrame) -> int:
@@ -118,6 +119,7 @@ def update_players_from_df(changed: pd.DataFrame) -> int:
             """
             UPDATE player
             SET user_game_id = ?, game_username = ?, app_username = ?,
+                alliance = ?,
                 is_admin = ?, is_super_admin = ?
             WHERE player_id = ?
             """,
@@ -125,10 +127,34 @@ def update_players_from_df(changed: pd.DataFrame) -> int:
                 int(row["user_game_id"]) if pd.notna(row["user_game_id"]) else None,
                 row["game_username"],
                 row.get("app_username"),
+                row.get("alliance"),
                 int(bool(row["is_admin"])),
                 int(bool(row["is_super_admin"])),
                 int(player_id),
             ),
         )
 
+    conn.commit()
+
+
+def update_player_profile(
+        player_id: int,
+        user_game_id: int,
+        game_username: str,
+        app_username: str,
+        alliance: str | None,
+) -> None:
+    """
+    Update player profile for given player id.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE player
+        SET user_game_id = ?, game_username = ?, app_username = ?, alliance = ?
+        WHERE player_id = ?
+        """,
+        (user_game_id, game_username, app_username, alliance, player_id),
+    )
     conn.commit()
