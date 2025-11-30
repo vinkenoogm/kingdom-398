@@ -108,27 +108,27 @@ def main():
             st.session_state.pop(key, None)
         st.rerun()
 
-    st.subheader("Add a new activity")
-    with st.form("new_activity_form"):
-        name = st.text_input("Activity name", help="e.g., Noble Advisor title")
-        description = st.text_area("Description", help="Optional details for players", height=100)
-        event_date = st.date_input("Event date", help="Pick the date for this activity")
-        is_active = st.checkbox("Active", help="Players can give availability for active events only", value=True)
+    with st.expander("Add a new activity"):
+        with st.form("new_activity_form"):
+            name = st.text_input("Activity name", help="e.g., Noble Advisor title")
+            description = st.text_area("Description", help="Optional details for players", height=100)
+            event_date = st.date_input("Event date", help="Pick the date for this activity")
+            is_active = st.checkbox("Active", help="Players can give availability for active events only", value=True)
 
-        submitted = st.form_submit_button("Create activity")
+            submitted = st.form_submit_button("Create activity")
 
-    if submitted:
-        if not name:
-            st.error("A name for the activity must be provided.")
-        else:
-            event_date_str = event_date.isoformat() if event_date else None
-            create_activity(
-                name=name,
-                description=description,
-                event_date=event_date_str,
-                is_active=is_active
-            )
-            st.success(f"Activity **{name}** created successfully.")
+        if submitted:
+            if not name:
+                st.error("A name for the activity must be provided.")
+            else:
+                event_date_str = event_date.isoformat() if event_date else None
+                create_activity(
+                    name=name,
+                    description=description,
+                    event_date=event_date_str,
+                    is_active=is_active
+                )
+                st.success(f"Activity **{name}** created successfully.")
 
     st.subheader("Existing activities")
 
