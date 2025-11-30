@@ -26,7 +26,7 @@ def main():
         )
         return
 
-    st.caption(f"Hi **{player_name}**!")
+    st.success(f"Hi **{player_name}**!")
 
     if st.button("Log out", key="player_logout_profile"):
         for key in ("player_id", "player_name"):
@@ -41,37 +41,39 @@ def main():
     st.subheader("Edit your profile")
 
     with st.form("profile_form"):
-        new_username = st.text_input(
-            "In-game username",
-            value=player["username"] or "",
-        )
-
-        new_app_username = None
-        if player["is_admin"]:
-            new_app_username = st.text_input(
-                "Admin username",
-                value=player["app_username"] or "",
+        c1a, c2a = st.columns(2)
+        with c1a:
+            new_username = st.text_input(
+                "In-game username",
+                value=player["game_username"] or "",
+            )
+            new_alliance = st.text_input(
+                "Alliance (optional)",
+                value=player.get("alliance") or "",
             )
 
-        user_game_id_str = st.text_input(
-            "In-game ID (8 numbers)",
-            value=str(player["user_game_id"]) if player["user_game_id"] is not None else "",
-        )
-
-        new_alliance = st.text_input(
-            "Alliance (optional)",
-            value=player.get("alliance") or "",
-        )
+        with c2a:
+            new_app_username = st.text_input(
+                "App username (optional)",
+                value=player["app_username"] or "",
+                help="You can set a different username to use on this app, e.g., in case your in-game username is annoying to type.",
+            )
+            user_game_id_str = st.text_input(
+                "In-game ID (8 numbers)",
+                value=str(player["user_game_id"]) if player["user_game_id"] is not None else "",
+            )
 
         st.markdown("**PIN settings**")
         st.caption(
-            "Leave these blank to keep your current PIN."
-            "Fill in a new PIN (and confirm) to set or change it."
+            "Leave these blank to keep your current PIN. \n"
             "A PIN is required if you want to save your profile."
         )
 
-        new_pin = st.text_input("New PIN", type="password")
-        new_pin_confirm = st.text_input("Confirm new PIN", type="password")
+        c1b, c2b = st.columns(2)
+        with c1b:
+            new_pin = st.text_input("New PIN", type="password")
+        with c2b:
+            new_pin_confirm = st.text_input("Confirm new PIN", type="password")
 
         submitted_profile = st.form_submit_button("Save profile")
 
@@ -103,7 +105,7 @@ def main():
         player_id=player_id,
         user_game_id=new_user_game_id,
         game_username=new_username.strip(),
-        app_username=new_app_username,
+        app_username=new_app_username.strip(),
         alliance=new_alliance.strip() or None,
     )
 

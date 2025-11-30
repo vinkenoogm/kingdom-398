@@ -3,7 +3,9 @@ import streamlit as st
 from streamlit_app.db import init_db
 from streamlit_app.db.activity import get_active_activities
 from streamlit_app.db.availability import save_availability, get_availability_slots
-from streamlit_app.utils.authentication import upsert_player_and_check_pin
+from streamlit_app.db.player import get_player_by
+from streamlit_app.utils.authentication import find_player_by_login_name, check_player_pin, \
+    register_new_player
 
 
 def render_slot_grid(
@@ -50,47 +52,152 @@ def run():
         st.session_state["player_id"] = None
         st.session_state["player_name"] = None
 
+    if "login_stage" not in st.session_state:
+        st.session_state["login_stage"] = "enter_username"
+
+    if "login_candidate_player_id" not in st.session_state:
+        st.session_state["login_candidate_player_id"] = None
+        st.session_state["login_candidate_name"] = None
+
     st.title("Kingdom 398 events")
 
-    # Player identification
+    # Log-in flow
     if st.session_state["player_id"] is None:
-        st.subheader("Welcome! Who are you?")
-        st.caption("If you're here for the first time, enter your in-game username and ID. You can set a PIN to edit your availability later, but it's not required. If you're a returning user, you can log in using your in-game username and your PIN if you've set one.")
+        stage = st.session_state["login_stage"]
 
-        with st.form("identify_form"):
-            game_username = st.text_input("In-game username")
-            pin = st.text_input("PIN (optional, unless you've set it before)", type="password")
-            user_game_id_str = st.text_input("In-game ID (8 numbers)")
+        # STEP 1: Ask for username
+        if stage == "enter_username":
+            st.subheader("Welcome! Who are you?")
+            st.caption("If you're here for the first time, enter your in-game username. If you're a returning user, you can use either your in-game username or app username, if you've set one.")
 
-            submitted_identify = st.form_submit_button("Continue")
+            with st.form("login_username_form"):
+                login_name = st.text_input("Username")
+                submitted = st.form_submit_button("Continue")
 
-        if submitted_identify:
-            if not game_username:
-                st.error("In-game username is required.")
+            if submitted:
+                if not login_name.strip():
+                    st.error("Username is required.")
+                else:
+                    player = find_player_by_login_name(login_name.strip())
+                    if player:
+                        st.session_state["login_stage"] = "existing_user"
+                        st.session_state["login_candidate_player_id"] = player["player_id"]
+                        st.session_state["login_candidate_name"] = login_name.strip()
+                        st.rerun()
+                    else:
+                        st.session_state["login_stage"] = "new_user"
+                        st.session_state["login_candidate_player_id"] = None
+                        st.session_state["login_candidate_name"] = login_name.strip()
+                        st.rerun()
 
-            else:
+        # STEP 2a: existing user, check for pin
+        elif stage == "existing_user":
+            candidate_name = st.session_state["login_candidate_name"]
+            candidate_player_id = st.session_state["login_candidate_player_id"]
+
+            st.subheader("Welcome back!")
+
+            player = get_player_by("player_id", candidate_player_id)
+            if not player:
+                st.error("Could not load player from database. Please try again.")
+                # reset flow
+                st.session_state["login_stage"] = "enter_username"
+                st.rerun()
+
+            requires_pin = bool(player["pin_hash"])
+
+            with st.form("login_existing_form"):
+                st.text_input(
+                    "Username",
+                    value=candidate_name,
+                    disabled=True,
+                )
+
+                if requires_pin:
+                    pin = st.text_input("PIN", type="password")
+
+                submitted = st.form_submit_button("Log in")
+
+            if submitted:
+                ok, msg = check_player_pin(candidate_player_id, pin or None)
+                if ok:
+                    st.session_state["player_id"] = candidate_player_id
+                    st.session_state["player_name"] = player["game_username"]
+                    # reset login flow state
+                    st.session_state["login_stage"] = "enter_username"
+                    st.session_state["login_candidate_player_id"] = None
+                    st.session_state["login_candidate_name"] = None
+                    st.success(msg)
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+            st.button(
+                "Not you? Choose a different username",
+                on_click=lambda: (
+                    st.session_state.update(
+                        {
+                            "login_stage": "enter_username",
+                            "login_candidate_player_id": None,
+                            "login_candidate_name": None,
+                        }
+                    )
+                ),
+            )
+
+        # Step 2b: register new user
+        elif stage == "new_user":
+            candidate_name = st.session_state["login_candidate_name"]
+
+            st.subheader("New player registration")
+            st.caption(
+                f"Couldn't find a player with username **{candidate_name}**. "
+                "If you're new, register by adding your in-game ID and optional PIN below."
+            )
+
+            with st.form("register_new_player_form"):
+                st.text_input(
+                    "In-game username",
+                    value=candidate_name,
+                    disabled=True,
+                )
+                user_game_id_str = st.text_input("In-game ID (optional, 8 numbers)")
+                pin = st.text_input(
+                    "PIN (optional, to protect edits)",
+                    type="password",
+                )
+                submitted = st.form_submit_button("Create player")
+
+            if submitted:
                 user_game_id = None
-                if user_game_id_str:
+                if user_game_id_str.strip():
                     try:
-                        user_game_id = int(user_game_id_str)
+                        user_game_id = int(user_game_id_str.strip())
                     except ValueError:
                         st.error("In-game ID must be a number.")
                         user_game_id = None
+                        return
 
-                success, msg, resolved_id = upsert_player_and_check_pin(
-                    user_game_id=user_game_id,
-                    game_username=game_username,
-                    pin=pin or None,
-                )
-                if success:
-                    st.session_state["player_id"] = resolved_id
-                    st.session_state["player_name"] = game_username
-                    st.rerun()
-                else:
-                    st.session_state["player_id"] = None
-                    st.session_state["player_name"] = None
-                    st.error(msg)
+                if user_game_id is not None:
+                    ok, msg, player_id = register_new_player(
+                        user_game_id=user_game_id,
+                        game_username=candidate_name,
+                        pin=pin or None,
+                    )
+                    if ok and player_id is not None:
+                        st.session_state["player_id"] = player_id
+                        st.session_state["player_name"] = candidate_name
 
+                        # Reset login flow state
+                        st.session_state["login_stage"] = "enter_username"
+                        st.session_state["login_candidate_player_id"] = None
+                        st.session_state["login_candidate_name"] = None
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg or "Could not create player.")
+
+    # End login flow
 
     player_id = st.session_state["player_id"]
     player_name = st.session_state["player_name"]

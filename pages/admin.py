@@ -202,6 +202,9 @@ def main():
             st.markdown("Edit players - caution!")
             st.caption("You can edit in-game username and ID, app usernames and admin status.")
 
+            # Column order
+            df_players = df_players[["game_username", "user_game_id", "alliance", "app_username", "is_admin", "is_super_admin", "created_at"]]
+
             edited_df = st.data_editor(
                 df_players,
                 num_rows="fixed",

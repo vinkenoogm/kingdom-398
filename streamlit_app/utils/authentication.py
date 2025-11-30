@@ -1,5 +1,6 @@
 import hashlib
 import sqlite3
+from typing import Optional
 
 from streamlit_app.db import player as player_db
 
@@ -9,58 +10,71 @@ def hash_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode("utf-8")).hexdigest()
 
 
-def upsert_player_and_check_pin(
+def find_player_by_login_name(name: str) -> Optional[dict]:
+    """
+    Find a player by login name. First look for app_username, then game_username.
+    """
+    if not name:
+        return None
+
+    player = player_db.get_player_by("app_username", name)
+    if player:
+        return player
+
+    return player_db.get_player_by("game_username", name)
+
+
+def check_player_pin(player_id: int, pin: str | None) -> tuple[bool, str]:
+    """
+    For an existing player, allow login if no pin is set, or if correct pin is provided.
+    """
+    player = player_db.get_player_by("player_id", player_id)
+    if not player:
+        return False, "Player not found."
+
+    pin_hash = player["pin_hash"]
+
+    if not pin_hash:
+        return True, f"Logged in, no PIN set for player {player['game_username']}."
+
+    if not pin:
+        return False, f"{player['game_username']} has a PIN set, enter it to log in."
+
+    if hash_pin(pin) != pin_hash:
+        return False, f"Incorrect PIN."
+
+    return True, "Logged in."
+
+
+def register_new_player(
         user_game_id: int,
         game_username: str,
         pin: str | None,
-) -> tuple[bool, str, int | None]:
+) -> tuple[bool, str, Optional[int]]:
     """
-    Checks if player exists and enforces PIN rules.
-
-    Returns (success, message, resolved_player_id)
+    Create a new player with the given game_username and user_game_id and optional PIN.
+    Returns (success, message, player_id or None)
     """
+    if not game_username:
+        return False, "In-game username is required."
+    if not user_game_id:
+        return False, "In-game user ID is required."
 
-    # Find player by username first
-    player = player_db.get_player_by("game_username", game_username)
+    pin_hash = hash_pin(pin) if pin else None
 
-    print(player)
+    try:
+        player_id = player_db.create_player(
+            user_game_id=user_game_id,
+            game_username=game_username,
+            app_username=None,
+            pin_hash=pin_hash,
+            is_admin=False,
+            is_super_admin=False,
+        )
+    except sqlite3.IntegrityError as e:
+        return False, f"Could not create player: {e}", None
 
-    # Case 1: player does not exist in database, create new
-    if player is None:
-        if not user_game_id:
-            return False, "Unknown username, provide in-game ID to continue.", None
-
-        pin_hash = hash_pin(pin) if pin else None
-
-        try:
-            new_player_id = player_db.create_player(
-                user_game_id=user_game_id,
-                game_username=game_username,
-                app_username=None,
-                pin_hash=pin_hash,
-                is_admin=False,
-            )
-        except sqlite3.IntegrityError:
-            # ID already in use or other constraint violation
-            return False, "That in-game ID is already registered.", None
-
-        return True, "Player created.", new_player_id
-
-    resolved_id = player["player_id"]
-
-    # Case 2: player exists in database without pin
-    if not player["pin_hash"]:
-        return True, f"Player {player['game_username']} exists without PIN.", resolved_id
-
-    # Case 3: player has pin set, verify it
-    if not pin:
-        return False, f"{player['game_username']} has a PIN set, enter it to edit availability.", resolved_id
-
-    if hash_pin(pin) != player["pin_hash"]:
-        return False, "Incorrect PIN.", resolved_id
-
-    # Allow editing if pin is correct
-    return True, f"Logged in as {player['game_username']}.", resolved_id
+    return True, "Player created", player_id
 
 
 def authenticate_admin(app_username: str, pin: str) -> tuple[bool, str]:
