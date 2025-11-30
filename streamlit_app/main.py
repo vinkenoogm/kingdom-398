@@ -161,7 +161,7 @@ def run():
                     value=candidate_name,
                     disabled=True,
                 )
-                user_game_id_str = st.text_input("In-game ID (optional, 8 numbers)")
+                user_game_id_str = st.text_input("In-game ID (required, 8 numbers)")
                 pin = st.text_input(
                     "PIN (optional, to protect edits)",
                     type="password",
