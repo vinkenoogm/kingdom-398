@@ -3,34 +3,41 @@
 This app can run locally with SQLite and local screenshot files, but shared testing should use persistent services:
 
 - Neon Postgres for the database
-- STRATO HiDrive Object Storage, or another S3-compatible bucket, for screenshots
+- STRATO webspace via SFTP for screenshots
 
 ## Streamlit Cloud Secrets
 
-In Streamlit Cloud, add these as app secrets. Keep `DATABASE_URL` at the root level.
+In Streamlit Cloud, add these as app secrets. Keep all values at the root level.
 
 ```toml
 DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require"
 
-S3_ENDPOINT_URL = "https://YOUR-STRATO-S3-ENDPOINT"
-S3_BUCKET = "YOUR-BUCKET"
-S3_ACCESS_KEY_ID = "YOUR-ACCESS-KEY"
-S3_SECRET_ACCESS_KEY = "YOUR-SECRET-KEY"
-S3_REGION = "eu-central-1"
-S3_ADDRESSING_STYLE = "auto"
+SFTP_HOST = "YOUR-STRATO-SFTP-HOST"
+SFTP_PORT = "22"
+SFTP_USERNAME = "YOUR-SFTP-USERNAME"
+SFTP_PASSWORD = "YOUR-SFTP-PASSWORD"
+SFTP_REMOTE_DIR = "/battle-reports"
 
-# Optional. If configured, screenshot records store browser-friendly URLs.
-# Otherwise they store s3://bucket/key paths.
-S3_PUBLIC_BASE_URL = "https://YOUR-PUBLIC-BASE-URL"
+# Optional. Use this only if the SFTP folder is web-accessible.
+# If configured, screenshot records store clickable browser URLs.
+SFTP_PUBLIC_BASE_URL = "https://YOUR-DOMAIN/battle-reports"
 ```
 
 ## Neon
 
 Use the pooled Neon connection string if available. It should include `sslmode=require`.
 
-## STRATO Storage
+## STRATO Webspace
 
-This app expects an S3-compatible object storage endpoint. STRATO's HiDrive Object Storage provides access key / secret style credentials. Plain HiDrive REST/OAuth storage is a different API and is not wired here.
+Use the SFTP/SSH credentials from STRATO Hosting:
+
+- host/server
+- port, usually `22`
+- username
+- password
+- remote folder path
+
+If your STRATO webspace exposes the folder publicly through your domain, set `SFTP_PUBLIC_BASE_URL`. Otherwise the app will store the remote SFTP path in the screenshots table.
 
 ## Local Development
 
