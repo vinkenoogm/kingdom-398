@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Identity,
     Integer,
     MetaData,
     String,
@@ -45,7 +46,7 @@ metadata = MetaData()
 player_snapshots = Table(
     "player_snapshots",
     metadata,
-    Column("id", Integer, primary_key=True),
+    Column("id", Integer, Identity(), primary_key=True),
     Column("snapshot_code", String, nullable=False, unique=True),
     Column("player_name", String, nullable=False),
     Column("snapshot_date", String, nullable=False),
@@ -65,7 +66,7 @@ player_snapshots = Table(
 snapshot_heroes = Table(
     "snapshot_heroes",
     metadata,
-    Column("id", Integer, primary_key=True),
+    Column("id", Integer, Identity(), primary_key=True),
     Column("player_snapshot_id", Integer, ForeignKey("player_snapshots.id", ondelete="CASCADE"), nullable=False),
     Column("hero_name", String, nullable=False),
     Column("troop_type", String, nullable=False),
@@ -79,7 +80,7 @@ snapshot_heroes = Table(
 formations = Table(
     "formations",
     metadata,
-    Column("id", Integer, primary_key=True),
+    Column("id", Integer, Identity(), primary_key=True),
     Column("formation_code", String, nullable=False, unique=True),
     Column("name", String, nullable=False),
     Column("purpose", String, nullable=False),
@@ -108,7 +109,7 @@ formations = Table(
 experiments = Table(
     "experiments",
     metadata,
-    Column("id", Integer, primary_key=True),
+    Column("id", Integer, Identity(), primary_key=True),
     Column("experiment_code", String, nullable=False, unique=True),
     Column("battle_datetime", String, nullable=False),
     Column("player_snapshot_id", Integer, ForeignKey("player_snapshots.id"), nullable=False),
@@ -171,7 +172,7 @@ experiments = Table(
 screenshots = Table(
     "screenshots",
     metadata,
-    Column("id", Integer, primary_key=True),
+    Column("id", Integer, Identity(), primary_key=True),
     Column("experiment_id", Integer, ForeignKey("experiments.id", ondelete="CASCADE"), nullable=False),
     Column("file_path", Text, nullable=False),
     Column("original_filename", String),
