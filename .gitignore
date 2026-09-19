@@ -1,6 +1,7 @@
 .idea/
 data/data.db
 data/kingshot.db
+data/kingshot.db-*
 battle_reports/*
 !battle_reports/.gitkeep
 **/__pycache__
