@@ -136,53 +136,54 @@ else:
     our_turrets = 0
     enemy_turrets = 0
 
-st.subheader("Battle Report")
-col1, col2 = st.columns(2)
-our_total_troops = col1.number_input("Our total troops", min_value=0, step=1)
-enemy_total_troops = col2.number_input("Enemy total troops", min_value=0, step=1)
+with st.form("battle_report_and_outcome"):
+    st.subheader("Battle Report")
+    col1, col2 = st.columns(2)
+    our_total_troops = col1.number_input("Our total troops", min_value=0, step=1)
+    enemy_total_troops = col2.number_input("Enemy total troops", min_value=0, step=1)
 
-st.markdown("**Our report stats**")
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.caption("Infantry")
-    infantry_report_stats = report_stat_inputs("infantry")
-with col2:
-    st.caption("Cavalry")
-    cavalry_report_stats = report_stat_inputs("cavalry")
-with col3:
-    st.caption("Archers")
-    archer_report_stats = report_stat_inputs("archer")
+    st.markdown("**Our report stats**")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.caption("Infantry")
+        infantry_report_stats = report_stat_inputs("infantry")
+    with col2:
+        st.caption("Cavalry")
+        cavalry_report_stats = report_stat_inputs("cavalry")
+    with col3:
+        st.caption("Archers")
+        archer_report_stats = report_stat_inputs("archer")
 
-st.markdown("**Enemy report stats**")
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.caption("Infantry")
-    enemy_infantry_report_stats = report_stat_inputs("infantry", "enemy_report")
-with col2:
-    st.caption("Cavalry")
-    enemy_cavalry_report_stats = report_stat_inputs("cavalry", "enemy_report")
-with col3:
-    st.caption("Archers")
-    enemy_archer_report_stats = report_stat_inputs("archer", "enemy_report")
+    st.markdown("**Enemy report stats**")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.caption("Infantry")
+        enemy_infantry_report_stats = report_stat_inputs("infantry", "enemy_report")
+    with col2:
+        st.caption("Cavalry")
+        enemy_cavalry_report_stats = report_stat_inputs("cavalry", "enemy_report")
+    with col3:
+        st.caption("Archers")
+        enemy_archer_report_stats = report_stat_inputs("archer", "enemy_report")
 
-uploads = st.file_uploader(
-    "Battle report screenshots",
-    type=["png", "jpg", "jpeg", "webp"],
-    accept_multiple_files=True,
-)
+    uploads = st.file_uploader(
+        "Battle report screenshots",
+        type=["png", "jpg", "jpeg", "webp"],
+        accept_multiple_files=True,
+    )
 
-st.subheader("Outcome")
-col1, col2, col3 = st.columns(3)
-result = col1.selectbox("Result", ["Win", "Loss"])
-our_remaining_troops = col2.number_input("Our troops remaining", min_value=0, step=1)
-enemy_remaining_troops = col3.number_input("Enemy troops remaining", min_value=0, step=1)
-notes = st.text_area("Notes / confounders")
+    st.subheader("Outcome")
+    col1, col2, col3 = st.columns(3)
+    result = col1.selectbox("Result", ["Win", "Loss"])
+    our_remaining_troops = col2.number_input("Our troops remaining", min_value=0, step=1)
+    enemy_remaining_troops = col3.number_input("Enemy troops remaining", min_value=0, step=1)
+    notes = st.text_area("Notes / confounders")
 
-submitted = st.button(
-    "Save battle",
-    disabled=not lead_options or not formation_options,
-    type="primary",
-)
+    submitted = st.form_submit_button(
+        "Save battle",
+        disabled=not lead_options or not formation_options,
+        type="primary",
+    )
 
 if submitted:
     battle_datetime = datetime.combine(battle_date, battle_time)
