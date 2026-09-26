@@ -94,9 +94,11 @@ formations = Table(
     Column("joiner_skill_2", String),
     Column("joiner_skill_3", String),
     Column("joiner_skill_4", String),
+    Column("joiner_hero_1", String),
+    Column("joiner_hero_2", String),
+    Column("joiner_hero_3", String),
+    Column("joiner_hero_4", String),
     Column("hypothesis", Text),
-    Column("comparison_group", String),
-    Column("priority", Integer, nullable=False, server_default="3"),
     Column("status", String, nullable=False, server_default="Planned"),
     Column("notes", Text),
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
@@ -220,6 +222,38 @@ def get_engine() -> Engine:
 
 def init_db() -> None:
     metadata.create_all(get_engine())
+    ensure_formations_columns()
+
+
+def ensure_formations_columns() -> None:
+    required_columns = {
+        "joiner_hero_1": "VARCHAR",
+        "joiner_hero_2": "VARCHAR",
+        "joiner_hero_3": "VARCHAR",
+        "joiner_hero_4": "VARCHAR",
+    }
+    with get_engine().begin() as conn:
+        if get_engine().dialect.name == "sqlite":
+            existing_columns = {
+                row["name"]
+                for row in conn.execute(text("SELECT name FROM pragma_table_info('formations')")).mappings()
+            }
+        else:
+            existing_columns = {
+                row["column_name"]
+                for row in conn.execute(
+                    text(
+                        """
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_name = 'formations'
+                        """
+                    )
+                ).mappings()
+            }
+        for column_name, column_type in required_columns.items():
+            if column_name not in existing_columns:
+                conn.execute(text(f"ALTER TABLE formations ADD COLUMN {column_name} {column_type}"))
 
 
 def rows_for_table(table_name: str) -> list[dict]:
@@ -341,9 +375,11 @@ def seed_default_formations() -> int:
             "joiner_skill_2": "",
             "joiner_skill_3": "",
             "joiner_skill_4": "",
+            "joiner_hero_1": "",
+            "joiner_hero_2": "",
+            "joiner_hero_3": "",
+            "joiner_hero_4": "",
             "hypothesis": "Baseline Gen 7 attack ratio candidate.",
-            "comparison_group": "Troop ratio test A",
-            "priority": 1,
             "status": "Planned",
             "notes": "",
         },
@@ -361,9 +397,11 @@ def seed_default_formations() -> int:
             "joiner_skill_2": "",
             "joiner_skill_3": "",
             "joiner_skill_4": "",
+            "joiner_hero_1": "",
+            "joiner_hero_2": "",
+            "joiner_hero_3": "",
+            "joiner_hero_4": "",
             "hypothesis": "Tests whether shifting troop share from cavalry to archers improves outcomes.",
-            "comparison_group": "Troop ratio test A",
-            "priority": 1,
             "status": "Planned",
             "notes": "",
         },
@@ -381,9 +419,11 @@ def seed_default_formations() -> int:
             "joiner_skill_2": "",
             "joiner_skill_3": "",
             "joiner_skill_4": "",
+            "joiner_hero_1": "",
+            "joiner_hero_2": "",
+            "joiner_hero_3": "",
+            "joiner_hero_4": "",
             "hypothesis": "Tests a very low cavalry, high archer setup.",
-            "comparison_group": "Troop ratio test A",
-            "priority": 2,
             "status": "Planned",
             "notes": "",
         },
@@ -401,9 +441,11 @@ def seed_default_formations() -> int:
             "joiner_skill_2": "",
             "joiner_skill_3": "",
             "joiner_skill_4": "",
+            "joiner_hero_1": "",
+            "joiner_hero_2": "",
+            "joiner_hero_3": "",
+            "joiner_hero_4": "",
             "hypothesis": "Tests whether dropping cavalry entirely is useful in controlled fights.",
-            "comparison_group": "Troop ratio test A",
-            "priority": 2,
             "status": "Planned",
             "notes": "",
         },

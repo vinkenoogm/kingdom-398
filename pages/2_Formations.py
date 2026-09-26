@@ -26,11 +26,10 @@ with st.form("add_formation"):
     purpose = col3.selectbox("Purpose", ["Attack", "Defense"])
     status = col4.selectbox("Status", ["Planned", "Testing", "Promising", "Proven", "Dropped"])
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     infantry_pct = col1.number_input("Infantry %", min_value=0, max_value=100, value=50)
     cavalry_pct = col2.number_input("Cavalry %", min_value=0, max_value=100, value=20)
     archer_pct = col3.number_input("Archer %", min_value=0, max_value=100, value=30)
-    priority = col4.number_input("Priority", min_value=1, max_value=5, value=3)
 
     ratio_total = infantry_pct + cavalry_pct + archer_pct
     if ratio_total == 100:
@@ -44,14 +43,19 @@ with st.form("add_formation"):
     cavalry_hero = col2.text_input("Cavalry hero", placeholder="Ava")
     archer_hero = col3.text_input("Archer hero", placeholder="Wee & Woo")
 
-    st.markdown("**Joiner skills**")
+    st.markdown("**Joiner heroes and skills**")
+    col1, col2, col3, col4 = st.columns(4)
+    joiner_hero_1 = col1.text_input("Joiner hero 1", placeholder="Chenko")
+    joiner_hero_2 = col2.text_input("Joiner hero 2", placeholder="Chenko")
+    joiner_hero_3 = col3.text_input("Joiner hero 3", placeholder="Amane")
+    joiner_hero_4 = col4.text_input("Joiner hero 4", placeholder="Amane")
+
     col1, col2, col3, col4 = st.columns(4)
     joiner_skill_1 = col1.text_input("Skill 1", placeholder="Chenko")
     joiner_skill_2 = col2.text_input("Skill 2", placeholder="Chenko")
     joiner_skill_3 = col3.text_input("Skill 3", placeholder="Amane")
     joiner_skill_4 = col4.text_input("Skill 4", placeholder="Amane")
 
-    comparison_group = st.text_input("Comparison group", placeholder="Troop ratio test A")
     hypothesis = st.text_area("Hypothesis")
     notes = st.text_area("Notes")
     submitted = st.form_submit_button("Save formation")
@@ -78,9 +82,11 @@ if submitted:
             "joiner_skill_2": joiner_skill_2.strip(),
             "joiner_skill_3": joiner_skill_3.strip(),
             "joiner_skill_4": joiner_skill_4.strip(),
+            "joiner_hero_1": joiner_hero_1.strip(),
+            "joiner_hero_2": joiner_hero_2.strip(),
+            "joiner_hero_3": joiner_hero_3.strip(),
+            "joiner_hero_4": joiner_hero_4.strip(),
             "hypothesis": hypothesis.strip(),
-            "comparison_group": comparison_group.strip(),
-            "priority": int(priority),
             "status": status,
             "notes": notes.strip(),
         }
@@ -101,8 +107,26 @@ if rows:
             "Purpose": row["purpose"],
             "Ratio": f"{row['infantry_pct']} / {row['cavalry_pct']} / {row['archer_pct']}",
             "Heroes": f"{row['infantry_hero']} / {row['cavalry_hero']} / {row['archer_hero']}",
-            "Comparison": row["comparison_group"],
-            "Priority": row["priority"],
+            "Joiner heroes": " / ".join(
+                hero
+                for hero in [
+                    row.get("joiner_hero_1"),
+                    row.get("joiner_hero_2"),
+                    row.get("joiner_hero_3"),
+                    row.get("joiner_hero_4"),
+                ]
+                if hero
+            ),
+            "Joiner skills": " / ".join(
+                skill
+                for skill in [
+                    row.get("joiner_skill_1"),
+                    row.get("joiner_skill_2"),
+                    row.get("joiner_skill_3"),
+                    row.get("joiner_skill_4"),
+                ]
+                if skill
+            ),
             "Status": row["status"],
         }
         for row in rows
