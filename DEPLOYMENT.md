@@ -10,7 +10,7 @@ This app can run locally with SQLite and local screenshot files, but shared test
 In Streamlit Cloud, add these as app secrets. Keep all values at the root level.
 
 ```toml
-DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require"
+DATABASE_URL = "postgresql+psycopg://USER:PASSWORD@HOST/DBNAME?sslmode=require"
 
 SFTP_HOST = "YOUR-STRATO-SFTP-HOST"
 SFTP_PORT = "22"

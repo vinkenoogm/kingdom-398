@@ -200,7 +200,9 @@ def ensure_app_dirs() -> None:
 def database_url() -> str:
     if DATABASE_URL:
         if DATABASE_URL.startswith("postgres://"):
-            return DATABASE_URL.replace("postgres://", "postgresql://", 1)
+            return DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+        if DATABASE_URL.startswith("postgresql://"):
+            return DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
         return DATABASE_URL
     ensure_app_dirs()
     return f"sqlite:///{DB_PATH}"
